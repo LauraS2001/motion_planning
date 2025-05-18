@@ -56,7 +56,7 @@ def dijkstra(orig, dest, plot=False):
     pq = [(0, orig)] # We start from origin
     step = 0
     while pq:
-        _, node = heapq.heappop(pq)
+        _, node = heapq.heappop(pq) # heappop goes back the tuple with the lowest cost
         if node == dest: # We exit if the node is the destination
             print("Iterations:", step)
             plot_graph()
@@ -79,6 +79,7 @@ def dijkstra(orig, dest, plot=False):
 def reconstruct_path(orig, dest, plot=False, algorithm=None):
     for edge in G.edges:
         style_unvisited_edge(edge)
+    total_weight = 0
     dist = 0
     speeds = []
     curr = dest
@@ -86,11 +87,13 @@ def reconstruct_path(orig, dest, plot=False, algorithm=None):
         prev = G.nodes[curr]["previous"]
         dist += G.edges[(prev, curr, 0)]["length"]
         speeds.append(G.edges[(prev, curr, 0)]["maxspeed"])
+        total_weight = G.edges[(prev, curr, 0)]["weight"] + total_weight
         style_path_edge((prev, curr, 0))
         if algorithm:
             G.edges[(prev, curr, 0)][f"{algorithm}_uses"] = G.edges[(prev, curr, 0)].get(f"{algorithm}_uses", 0) + 1
         curr = prev
     dist /= 1000
+    print("Total weight:", total_weight)
 
 def plot_heatmap(algorithm):
     edge_colors = ox.plot.get_edge_colors_by_attr(G, f"{algorithm}_uses", cmap="hot")
@@ -131,7 +134,7 @@ for edge in G.edges:
 # I select 2 random nodes from the graph and apply Dijkstra to them
 # start = random.choice(list(G.nodes))
 # end = random.choice(list(G.nodes))
-start = list(G.nodes)[len(G.nodes)-57]
+start = list(G.nodes)[len(G.nodes)-570]
 end = list(G.nodes)[len(G.nodes)-10]
 
 print(len(G.nodes))
@@ -140,6 +143,6 @@ print("Running Dijkstra")
 dijkstra(start, end)
 print( "Done")
 
-reconstruct_path(start, end, algorithm="dijkstra", plot=True) # Recostructing the best path with Dijkstra
+reconstruct_path(start, end, algorithm="dijkstra", plot=True) # Reconstructing the best path with Dijkstra
 plot_heatmap("dijkstra")
 
