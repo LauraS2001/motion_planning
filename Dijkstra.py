@@ -108,8 +108,8 @@ def plot_heatmap(algorithm):
         bgcolor = "#18080e"
     )
 
-#place_name = "Piedmont, California, USA"
-place_name = "Turin, Piedmont, Italy" # Selecting starting place
+place_name = "Piedmont, California, USA"
+#place_name = "Turin, Piedmont, Italy" # Selecting starting place
 G = ox.graph_from_place(place_name, network_type="drive") # Building graph 'g' with osmnx with all roads where we can drive
 
 for edge in G.edges:
