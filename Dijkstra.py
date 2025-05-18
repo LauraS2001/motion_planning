@@ -125,24 +125,24 @@ for edge in G.edges:
             maxspeed = int(maxspeed)
     G.edges[edge]["maxspeed"] = maxspeed
     # Adding the "weight" attribute (time = distance / speed)
-    G.edges[edge]["weight"] = G.edges[edge]["length"] / maxspeed # Associating weight to each edge
+    G.edges[edge]["weight"] = (G.edges[edge]["length"] / 1000) / maxspeed * 3600
 
 
 for edge in G.edges:
     G.edges[edge]["dijkstra_uses"] = 0
 
-# I select 2 random nodes from the graph and apply Dijkstra to them
-# start = random.choice(list(G.nodes))
-# end = random.choice(list(G.nodes))
-start = list(G.nodes)[len(G.nodes)-570]
-end = list(G.nodes)[len(G.nodes)-10]
+# I select 2 nodes from the graph and apply Dijkstra to them
+nodelist = [(57, 10), (570, 10), (100, 1), (32, 200), (34, 80), (700, 397), (5, 577), (23, 2), (57, 269), (100, 67)]
 
-print(len(G.nodes))
+for source, target in nodelist:
+    start = list(G.nodes)[len(G.nodes) - source]
+    end = list(G.nodes)[len(G.nodes) - target]
+    print(f"start: {start}, end: {end}")
 
-print("Running Dijkstra")
-dijkstra(start, end)
-print( "Done")
+    print("Running Dijkstra")
+    dijkstra(start, end)
+    print("Done")
 
-reconstruct_path(start, end, algorithm="dijkstra", plot=True) # Reconstructing the best path with Dijkstra
-plot_heatmap("dijkstra")
+    reconstruct_path(start, end, algorithm="dijkstra", plot=True)  # Reconstructing the best path with Dijkstra
+    plot_heatmap("dijkstra")
 

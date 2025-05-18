@@ -1,6 +1,7 @@
+import math
+from collections import Counter
 import osmnx as ox # library to interact with google maps
 from geopy.distance import great_circle
-import random
 import heapq # library to deal with heap structure
 
 # Implement A* and compare the number of steps performed by A* vs the number of steps performed by Dijkstra using the same start and destination.
@@ -50,7 +51,7 @@ def A_star(orig, dest, plot=False):
         G.nodes[node]["gScore"] = float("inf") # Path cost from the start node to the node n
         G.nodes[node]["fScore"] = float("inf") # Global cost value
     G.nodes[orig]["gScore"] = 0
-    G.nodes[orig]["hScore"] = calculation_heuristic(orig, dest)
+    G.nodes[orig]["hScore"] = calculation_haversine_heuristic(orig, dest)
     G.nodes[orig]["fScore"] = G.nodes[orig]["gScore"] + G.nodes[orig]["hScore"]
 
     for edge in G.edges:
@@ -80,7 +81,7 @@ def A_star(orig, dest, plot=False):
             tentative_gScore = G.nodes[current]["gScore"] + weight
             if tentative_gScore < G.nodes[neighbor]["gScore"]:
                 print('Tentative gScore:', tentative_gScore)
-                G.nodes[neighbor]["hScore"] = calculation_heuristic(neighbor, dest)  # Heuristic: cost from the n node to the destination
+                G.nodes[neighbor]["hScore"] = calculation_haversine_heuristic(neighbor, dest)  # Heuristic: cost from the n node to the destination
                 print('Heuristic:', G.nodes[neighbor]["hScore"])
                 G.nodes[neighbor]["distance"] = G.nodes[current]["distance"] + weight # we update the cost
                 G.nodes[neighbor]["gScore"] = tentative_gScore
@@ -94,10 +95,32 @@ def A_star(orig, dest, plot=False):
 
         step += 1
 
-def calculation_heuristic(node, dest):
-    coord1 = (G.nodes[node]['y'], G.nodes[node]['x']) # (lat, lon)
+def calculation_Manhattan_geometry_heuristic(node, dest):
+    dx = abs(G.nodes[node]['x'] - G.nodes[dest]['x'])
+    dy = abs(G.nodes[node]['y'] - G.nodes[dest]['y'])
+    # Conversione approssimata da gradi a km
+    dx_km = dx * 111.32 * math.cos(math.radians(G.nodes[node]['y']))  # dipende dalla latitudine
+    dy_km = dy * 110.57  # 1° latitudine ≈ 110.57 km
+
+    distance_km = math.sqrt(dx_km ** 2 + dy_km ** 2)
+    D = 1
+    return D * distance_km / average_speed * 3600
+
+def calculation_euclidean_distance_heuristic(node, dest):
+    dx = abs(G.nodes[node]['x'] - G.nodes[dest]['x'])
+    dy = abs(G.nodes[node]['y'] - G.nodes[dest]['y'])
+    # Conversione approssimata da gradi a km
+    dx_km = dx * 111.32 * math.cos(math.radians(G.nodes[node]['y']))  # dipende dalla latitudine
+    dy_km = dy * 110.57  # 1° latitudine ≈ 110.57 km
+
+    distance_km = math.sqrt(dx_km ** 2 + dy_km ** 2)
+    D = 1
+    return D * math.sqrt(dx_km * dx_km + dy_km * dy_km) / average_speed * 3600
+
+def calculation_haversine_heuristic(node, dest):
+    coord1 = (G.nodes[node]['y'], G.nodes[node]['x'])  # (lat, lon)
     coord2 = (G.nodes[dest]['y'], G.nodes[dest]['x'])
-    return great_circle(coord2, coord1).km / 40
+    return great_circle(coord1, coord2).km / average_speed * 3600
 
 # Function to reconstruct the best path starting from destination to starting point using previous node chain
 def reconstruct_path(orig, dest, plot=False, algorithm=None):
@@ -136,6 +159,10 @@ def plot_heatmap(algorithm):
 place_name = "Turin, Piedmont, Italy" # Selecting starting place
 G = ox.graph_from_place(place_name, network_type="drive") # Building graph 'g' with osmnx with all roads where we can drive
 
+average_speed = 0
+count = 0
+max_speed = 0
+
 for edge in G.edges:
     # Cleaning the "maxspeed" attribute, some values are lists, some are strings, some are None
     maxspeed = 40
@@ -149,26 +176,33 @@ for edge in G.edges:
             maxspeed = int(maxspeed)
     G.edges[edge]["maxspeed"] = maxspeed
     # Adding the "weight" attribute (time = distance / speed)
-    G.edges[edge]["weight"] = G.edges[edge]["length"] / maxspeed # Associating weight to each edge
+    #G.edges[edge]["weight"] = G.edges[edge]["length"] / maxspeed # Associating weight to each edge
+    G.edges[edge]["weight"] = (G.edges[edge]["length"] / 1000) / maxspeed * 3600
+    if maxspeed > max_speed:
+        max_speed = maxspeed
+    average_speed += maxspeed
+    count += 1
+
+average_speed = average_speed / count
+print("Average speed:", average_speed)
+print("Max speed:", max_speed)
 
 
 for edge in G.edges:
     G.edges[edge]["A_star_uses"] = 0
 
-# I select 2 random nodes from the graph and apply Dijkstra to them
-# start = random.choice(list(G.nodes))
-# end = random.choice(list(G.nodes))
-start = list(G.nodes)[len(G.nodes)-570]
-end = list(G.nodes)[len(G.nodes)-10]
+# I select 2 nodes from the graph and apply Dijkstra to them
+nodelist = [(57, 10), (570, 10), (100, 1), (32, 200), (34, 80), (700, 397), (5, 577), (23, 2), (57, 269), (100, 67)]
 
-print(len(G.nodes))
-print('Starting node: ', list(G.nodes)[len(G.nodes)-570])
-print('Destination node: ', list(G.nodes)[len(G.nodes)-10])
+for source, target in nodelist:
+    start = list(G.nodes)[len(G.nodes) - source]
+    end = list(G.nodes)[len(G.nodes) - target]
+    print(f"start: {start}, end: {end}")
 
-print("Running A*")
-A_star(start, end)
-print( "Done")
+    print("Running A*")
+    A_star(start, end)
+    print("Done")
 
-reconstruct_path(start, end, algorithm="A_star", plot=True) # Reconstructing the best path with Dijkstra
-plot_heatmap("A_star")
+    reconstruct_path(start, end, algorithm="A_star", plot=True)  # Reconstructing the best path with Dijkstra
+    plot_heatmap("A_star")
 
